@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Timer @ BarCamp RheinMain</title>
-    <meta charset="UTF-8">
-    <link href='http://fonts.googleapis.com/css?family=Ubuntu:700,300,300italic' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Ubuntu:700,300' rel='stylesheet' type='text/css'>
     <style type="text/css">
         html{
             font-size:10px;
@@ -14,8 +15,7 @@
         }
         body{
             font-family: 'Ubuntu', sans-serif;
-            background-color: #800;
-            background: url('bg.jpg');
+            background: url('bg.jpg') #800;
             background-size: cover;
             background-position: center;
             color: #FFF;
@@ -35,8 +35,11 @@
             font-weight: 800;
             line-height: 0.8;
         }
+        .small.timer{
+            font-size: 20rem;
+        }
 
-        .error{
+        .error .timer{
             color: #000;
             /*background-color: #FFF;*/
         }
@@ -54,12 +57,13 @@
 <body>
 
 <div class="wrapper">
-    <div class="info" id="sessionName">InfoText</div>
-    <div class="timer" id="timer">00:00</div>
-    <div>&nbsp;</div>
+    <div class="info" id="sessionName">loading</div>
+    <div class="timer" id="timer">&nbsp;</div>
+    <div class="info" id="baseInfo">&nbsp;</div>
 </div>
 
-<script src="https://code.jquery.com/jquery-2.1.1.min.js" type="text/javascript"></script>
+<script src="//code.jquery.com/jquery-2.1.1.min.js" type="text/javascript"></script>
+<script>window.jQuery || document.write('<script src="./script/jquery-2.1.1.min.js"><\/script>')</script>
 <script type="text/javascript">
     $(function(){
         var $win = $(window),
@@ -71,9 +75,6 @@
            this.title = title;
            this.endTime =  this.startTime + minutes * 60000;
            this.endDate = new Date( this.endTime );
-
-           console.log(this.startDate.getTimezoneOffset()+' > '+this.endDate.getTimezoneOffset())
-           // console.log(this.startTime+' > '+this.endTime)
         }
 
         function leadingZero(n){
@@ -81,7 +82,6 @@
         }
 
         function resize(){
-            console.log('resize: '+($win.width() / 100));
             $('html').css({
                 'font-size': ($win.width() / 100) + 'px'
             });
@@ -110,7 +110,7 @@
                new TimeSlot(new Date(2014, 10, 23, 15, 0, 0), 'Session E', 45),
                new TimeSlot(new Date(2014, 10, 23, 16, 0, 0), 'Abschlussveranstaltung', 30),
                new TimeSlot(new Date(2014, 10, 23, 16, 30, 0), 'Abbau', 60),
-               new TimeSlot(new Date(2014, 10, 23, 16, 30, 0), 'BarCamp beendet<br>Bis zum nächsten mal', 60)
+               new TimeSlot(new Date(2014, 10, 23, 16, 30, 0), 'BarCamp beendet<br>Bis zum nächsten mal', 0)
             ],
             currentSlot,
             $timerDisplay = $('#timer'),
@@ -119,47 +119,60 @@
 
         function controlTime(){
             var currentTime = new Date().getTime(),
-                duration,
+                duration, pause,
                 nextSlot = currentSlot || timeSlots[0],
                 i = timeSlots.indexOf(nextSlot),
                 str = '';
 
-            while(timeSlots[i].endTime < currentTime && i < timeSlots.length){
+            while(nextSlot.endTime < currentTime && i < timeSlots.length){
                 i++;
+                nextSlot = timeSlots[i];
             }
+
             if(timeSlots[i].startTime > currentTime){
                 if(i>0){
                     i--;
                 }
             }
-            nextSlot = timeSlots[i];
-            duration = nextSlot.endTime - currentTime;
+            currentSlot = timeSlots[i];
+            duration = currentSlot.endTime - currentTime;
             if(duration < 0){
-                str = '-';
-                duration = -duration;
-                $body.toggleClass('error');
+                pause = (nextSlot==currentSlot)? 0 : nextSlot.startTime - currentSlot.endTime;
+                if(currentTime > currentSlot.endTime + Math.min(pause * .666, 600000)){
+                    str = '+';
+                    duration = pause + duration;
+                    $body.removeClass('error');
+
+                    currentSlot = nextSlot;
+                } else {
+                    str = '-';
+                    duration = - duration;
+                    $body.toggleClass('error');
+                }
+
             } else {
                 $body.removeClass('error');
             }
 
-            //console.log(nextSlot.startDate+', duration:'+duration);
-
-            /*str += leadingZero( Math.floor(duration / 3600000) ) + ':' +
+            /*str += leadingZero(  ) + ':' +
                   leadingZero( Math.floor(duration / 60000)%60 ) + ':' +
                   leadingZero( Math.floor(duration / 1000)%60 );  */
 
-            str += leadingZero( Math.floor(duration / 60000) ) + ':' +
+            var h = Math.floor(duration / 3600000);
+            if(h) str += leadingZero(h)+':';
+
+            $timerDisplay.toggleClass('small', Boolean(h));
+
+            str += leadingZero( Math.floor(duration / 60000)%60 ) + ':' +
                    leadingZero( Math.floor(duration / 1000)%60 );
 
             $timerDisplay.html(str);
-            $infoDisplay.html(nextSlot.title);
-
-            currentSlot = nextSlot;
+            $infoDisplay.html(currentSlot.title);
         }
 
         setInterval(controlTime, 250);
-
         $win.resize(resize);
+        resize();
     });
 </script>
 </body>
