@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Timer @ BarCamp RheinMain</title>
+    <meta charset="UTF-8">
+    <link href='http://fonts.googleapis.com/css?family=Ubuntu:700,300,300italic' rel='stylesheet' type='text/css'>
+    <style type="text/css">
+        html{
+            font-size:10px;
+        }
+        html, body{
+            height:100%;
+            width:100%;
+        }
+        body{
+            font-family: 'Ubuntu', sans-serif;
+            background-color: #800;
+            background: url('bg.jpg');
+            background-size: cover;
+            background-position: center;
+            color: #FFF;
+            font-size: 7rem;
+            text-align: center;
+            margin:0;
+            padding:0;
+            text-shadow: 1rem 1rem 1rem rgba(0,0,0,0.5);
+        }
+
+        .info{
+            text-transform: uppercase;
+        }
+
+        .timer{
+           font-size: 30rem;
+            font-weight: 800;
+            line-height: 0.8;
+        }
+
+        .error{
+            color: #000;
+            /*background-color: #FFF;*/
+        }
+
+        .wrapper {
+            position: relative;
+            top: 20%;
+            -webkit-transform: translateY(-20%);
+            -ms-transform: translateY(-20%);
+            transform: translateY(-20%);
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <div class="info" id="sessionName">InfoText</div>
+    <div class="timer" id="timer">00:00</div>
+    <div>&nbsp;</div>
+</div>
+
+<script src="https://code.jquery.com/jquery-2.1.1.min.js" type="text/javascript"></script>
+<script type="text/javascript">
+    $(function(){
+        var $win = $(window),
+            $doc = $(document);
+
+        function TimeSlot(startDate, title, minutes){
+           this.startDate = startDate;
+           this.startTime = startDate.getTime();
+           this.title = title;
+           this.endTime =  this.startTime + minutes * 60000;
+           this.endDate = new Date( this.endTime );
+
+           console.log(this.startDate.getTimezoneOffset()+' > '+this.endDate.getTimezoneOffset())
+           // console.log(this.startTime+' > '+this.endTime)
+        }
+
+        function leadingZero(n){
+            return (n<10)? '0'+n : n;
+        }
+
+        function resize(){
+            console.log('resize: '+($win.width() / 100));
+            $('html').css({
+                'font-size': ($win.width() / 100) + 'px'
+            });
+        }
+
+        var timeSlots = [
+               new TimeSlot(new Date(2014, 10, 22, 0, 0, 0), 'Test BarCamp RheinMain', 42),
+               new TimeSlot(new Date(2014, 10, 22, 8, 30, 0), 'Anmeldung & Frühstück', 60),
+               new TimeSlot(new Date(2014, 10, 22, 9, 30, 0), 'Sessionplanung', 60),
+               new TimeSlot(new Date(2014, 10, 22, 11, 0, 0), 'Session A', 45),
+               new TimeSlot(new Date(2014, 10, 22, 12, 0, 0), 'Session B', 45),
+               new TimeSlot(new Date(2014, 10, 22, 13, 0, 0), 'Mittagessen', 60),
+               new TimeSlot(new Date(2014, 10, 22, 14, 0, 0), 'Session C', 45),
+               new TimeSlot(new Date(2014, 10, 22, 15, 0, 0), 'Session D', 45),
+               new TimeSlot(new Date(2014, 10, 22, 16, 0, 0), 'Session E', 45),
+               new TimeSlot(new Date(2014, 10, 22, 17, 0, 0), 'Session F', 45),
+               new TimeSlot(new Date(2014, 10, 22, 18, 0, 0), 'Abschlussveranstaltung', 30),
+
+               new TimeSlot(new Date(2014, 10, 23, 8, 15, 0), 'Anmeldung & Frühstück', 60),
+               new TimeSlot(new Date(2014, 10, 23, 9, 0, 0), 'Sessionplanung', 60),
+               new TimeSlot(new Date(2014, 10, 23, 10, 0, 0), 'Session A', 45),
+               new TimeSlot(new Date(2014, 10, 23, 11, 0, 0), 'Session B', 45),
+               new TimeSlot(new Date(2014, 10, 23, 12, 0, 0), 'Session C', 60),
+               new TimeSlot(new Date(2014, 10, 23, 13, 0, 0), 'Mittagessen', 45),
+               new TimeSlot(new Date(2014, 10, 23, 14, 0, 0), 'Session D', 45),
+               new TimeSlot(new Date(2014, 10, 23, 15, 0, 0), 'Session E', 45),
+               new TimeSlot(new Date(2014, 10, 23, 16, 0, 0), 'Abschlussveranstaltung', 30),
+               new TimeSlot(new Date(2014, 10, 23, 16, 30, 0), 'Abbau', 60),
+               new TimeSlot(new Date(2014, 10, 23, 16, 30, 0), 'BarCamp beendet<br>Bis zum nächsten mal', 60)
+            ],
+            currentSlot,
+            $timerDisplay = $('#timer'),
+            $infoDisplay = $('#sessionName'),
+            $body = $('body');
+
+        function controlTime(){
+            var currentTime = new Date().getTime(),
+                duration,
+                nextSlot = currentSlot || timeSlots[0],
+                i = timeSlots.indexOf(nextSlot),
+                str = '';
+
+            while(timeSlots[i].endTime < currentTime && i < timeSlots.length){
+                i++;
+            }
+            if(timeSlots[i].startTime > currentTime){
+                if(i>0){
+                    i--;
+                }
+            }
+            nextSlot = timeSlots[i];
+            duration = nextSlot.endTime - currentTime;
+            if(duration < 0){
+                str = '-';
+                duration = -duration;
+                $body.toggleClass('error');
+            } else {
+                $body.removeClass('error');
+            }
+
+            //console.log(nextSlot.startDate+', duration:'+duration);
+
+            /*str += leadingZero( Math.floor(duration / 3600000) ) + ':' +
+                  leadingZero( Math.floor(duration / 60000)%60 ) + ':' +
+                  leadingZero( Math.floor(duration / 1000)%60 );  */
+
+            str += leadingZero( Math.floor(duration / 60000) ) + ':' +
+                   leadingZero( Math.floor(duration / 1000)%60 );
+
+            $timerDisplay.html(str);
+            $infoDisplay.html(nextSlot.title);
+
+            currentSlot = nextSlot;
+        }
+
+        setInterval(controlTime, 250);
+
+        $win.resize(resize);
+    });
+</script>
+</body>
+</html>
